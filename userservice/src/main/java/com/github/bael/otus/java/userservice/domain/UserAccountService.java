@@ -1,54 +1,70 @@
 package com.github.bael.otus.java.userservice.domain;
 
-
-import com.github.bael.otus.java.userservice.data.UserAccountRepository;
+import com.github.bael.otus.java.userservice.data.ReactiveUserAccountRepository;
 import com.github.bael.otus.java.userservice.entity.UserAccount;
-
 import lombok.RequiredArgsConstructor;
+//import org.springframework.security.crypto.password.PasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.Optional;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserAccountService {
 
-    private final UserAccountRepository userAccountRepository;
+    private final ReactiveUserAccountRepository userAccountRepository;
+//    private final PasswordEncoder passwordEncoder;
 
-    @Transactional(readOnly = true)
-    public List<UserAccount> findAll() {
+    public Flux<UserAccount> findAll() {
         return userAccountRepository.findAll();
     }
 
-    @Transactional(readOnly = true)
-    public Optional<UserAccount> findById(UUID id) {
+    public Mono<UserAccount> findById(UUID id) {
         return userAccountRepository.findById(id);
     }
 
-    @Transactional(readOnly = true)
-    public Optional<UserAccount> findByUsername(String username) {
+    public Mono<UserAccount> findByUsername(String username) {
         return userAccountRepository.findByUsername(username);
     }
 
-    @Transactional
-    public UserAccount save(UserAccount user) {
-        return userAccountRepository.save(user);
+    public Mono<UserAccount> createUser(UserAccount userAccount, String rawPassword) {
+        log.info("Creating user {}", userAccount);
+
+//        userAccount.setPasswordHash(passwordEncoder.encode(rawPassword));
+        userAccount.setPasswordHash(rawPassword);
+        userAccount.setCreatedAt(Instant.now());
+//        userAccount.setUpdatedAt(LocalDateTime.now());
+        userAccount.setEnabled(true);
+
+        var user = userAccountRepository.save(userAccount);
+        log.info("User {} created" , userAccount);
+        return user;
     }
 
-    @Transactional
-    public void disableById(UUID id) {
-        var user = userAccountRepository.findById(id).orElse(null);
-        if (user != null) {
-            user.setEnabled(false);
-            userAccountRepository.save(user);
-        }
+    public Mono<UserAccount> updateUser(UserAccount userAccount) {
+//        userAccount.setUpdatedAt(LocalDateTime.now());
+        return userAccountRepository.save(userAccount);
     }
 
-    @Transactional(readOnly = true)
-    public boolean existsById(UUID id) {
-        return userAccountRepository.existsById(id);
+    public Mono<Void> deleteById(UUID id) {
+        return userAccountRepository.deleteById(id);
+    }
+
+    public Mono<Boolean> existsByUsername(String username) {
+        return userAccountRepository.existsByUsername(username);
+    }
+
+    public Mono<Boolean> existsByEmail(String email) {
+        return userAccountRepository.existsByEmail(email);
+    }
+
+    public Mono<UserAccount> findByEmail(String email) {
+        return userAccountRepository.findByEmail(email);
     }
 }

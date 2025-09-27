@@ -1,127 +1,108 @@
 package com.github.bael.otus.java.userservice.rest.controller;
 
-
 import com.github.bael.otus.java.userservice.domain.UserAccountService;
 import com.github.bael.otus.java.userservice.entity.UserAccount;
 import com.github.bael.otus.java.userservice.rest.dto.UserAccountCreateRequest;
 import com.github.bael.otus.java.userservice.rest.dto.UserAccountResponse;
 import com.github.bael.otus.java.userservice.rest.dto.UserAccountUpdateRequest;
+
 import com.github.bael.otus.java.userservice.rest.mapper.UserAccountMapper;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-        import java.util.List;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import java.net.URI;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@Tag(name = "User Management", description = "APIs for managing users")
+@Tag(name = "User Account Management", description = "Reactive APIs for managing user accounts")
+@Slf4j
 public class UserAccountController {
 
-    private final UserAccountService userService;
-    private final UserAccountMapper userMapper;
+    private final UserAccountService userAccountService;
+    private final UserAccountMapper userAccountMapper;
 
-    @Operation(summary = "Get all users", description = "Retrieve a list of all registered users")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved users",
-            content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = UserAccountResponse.class)))
+    @Operation(summary = "Get all users")
     @GetMapping
-    public ResponseEntity<List<UserAccountResponse>> getAllUsers() {
-        List<UserAccount> users = userService.findAll();
-        return ResponseEntity.ok(userMapper.toResponseList(users));
+    public Flux<UserAccountResponse> getAllUsers() {
+        return userAccountService.findAll()
+                .map(userAccountMapper::toResponse);
     }
 
-    @Operation(summary = "Get user by ID", description = "Retrieve a specific user by their unique identifier")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User found",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = UserAccountResponse.class))),
-            @ApiResponse(responseCode = "404", description = "User not found")
-    })
+    @Operation(summary = "Get user by ID")
     @GetMapping("/{id}")
-    public ResponseEntity<UserAccountResponse> getUserById(
-            @Parameter(description = "User ID", example = "123e4567-e89b-12d3-a456-426614174000")
-            @PathVariable UUID id) {
-
-        return userService.findById(id)
-                .map(user -> ResponseEntity.ok(userMapper.toResponse(user)))
-                .orElse(ResponseEntity.notFound().build());
+    public Mono<ResponseEntity<UserAccountResponse>> getUserById(@PathVariable UUID id) {
+        return userAccountService.findById(id)
+                .map(userAccountMapper::toResponse)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Create a new user", description = "Register a new user in the system")
-    @ApiResponse(responseCode = "201", description = "User created successfully",
-            content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = UserAccountResponse.class)))
+    @Operation(summary = "Create a new user")
     @PostMapping
-    public ResponseEntity<UserAccountResponse> createUser(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "User creation data")
-            @Valid @RequestBody UserAccountCreateRequest request) {
+    public Mono<ResponseEntity<UserAccountResponse>> createUser(@Valid @RequestBody UserAccountCreateRequest request) {
+        UserAccount userAccount = userAccountMapper.toEntity(request);
 
-        UserAccount user = userMapper.toEntity(request);
-        // Здесь должна быть логика хеширования пароля
-        user.setPasswordHash(request.getPassword());
-        // todo
-        UserAccount savedUser = userService.save(user);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(userMapper.toResponse(savedUser));
+        return userAccountService.existsByUsername(request.getUsername())
+                .flatMap(exists -> {
+                    if (Boolean.TRUE.equals(exists)) {
+                        return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build());
+                    }
+                    return userAccountService.createUser(userAccount, request.getPassword())
+                            .map(userAccount1 -> {
+                                log.info("created user!!!! {}", userAccount1);
+                                return userAccount1;
+                            })
+                            .map(userAccountMapper::toResponse)
+
+                            .map(response -> ResponseEntity
+                                    .created(URI.create("/api/users/" + response.getId()))
+                                    .body(response));
+                });
     }
 
-    @Operation(summary = "Update user", description = "Update an existing user's information")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User updated successfully"),
-            @ApiResponse(responseCode = "404", description = "User not found")
-    })
+    @Operation(summary = "Update user")
     @PutMapping("/{id}")
-    public ResponseEntity<UserAccountResponse> updateUser(
-            @Parameter(description = "User ID") @PathVariable UUID id,
+    public Mono<ResponseEntity<UserAccountResponse>> updateUser(
+            @PathVariable UUID id,
             @Valid @RequestBody UserAccountUpdateRequest request) {
 
-        return userService.findById(id)
-                .map(user -> {
-                    userMapper.updateEntityFromRequest(request, user);
-                    UserAccount updatedUser = userService.save(user);
-                    return ResponseEntity.ok(userMapper.toResponse(updatedUser));
+        return userAccountService.findById(id)
+                .flatMap(existingUser -> {
+                    userAccountMapper.updateEntityFromRequest(request, existingUser);
+                    return userAccountService.updateUser(existingUser);
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .map(userAccountMapper::toResponse)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Delete user", description = "Remove a user from the system")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "User deleted successfully"),
-            @ApiResponse(responseCode = "404", description = "User not found")
-    })
+    @Operation(summary = "Delete user")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(
-            @Parameter(description = "User ID") @PathVariable UUID id) {
-
-        if (userService.existsById(id)) {
-            userService.disableById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+    public Mono<ResponseEntity<Void>> deleteUser(@PathVariable UUID id) {
+        return userAccountService.findById(id)
+                .flatMap(user -> userAccountService.deleteById(id)
+                        .then(Mono.just(ResponseEntity.noContent().<Void>build())))
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Get user by username", description = "Find a user by their username")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User found"),
-            @ApiResponse(responseCode = "404", description = "User not found")
-    })
+    @Operation(summary = "Get user by username")
     @GetMapping("/username/{username}")
-    public ResponseEntity<UserAccountResponse> getUserByUsername(
-            @Parameter(description = "Username") @PathVariable String username) {
-
-        return userService.findByUsername(username)
-                .map(user -> ResponseEntity.ok(userMapper.toResponse(user)))
-                .orElse(ResponseEntity.notFound().build());
+    public Mono<ResponseEntity<UserAccountResponse>> getUserByUsername(@PathVariable String username) {
+        return userAccountService.findByUsername(username)
+                .map(userAccountMapper::toResponse)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 }

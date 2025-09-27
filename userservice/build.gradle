@@ -42,31 +42,62 @@ tasks.withType(JavaCompile) {
 
 dependencies {
 
-    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0"
 
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'io.grpc:grpc-services'
+    // Reactive Web
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // Reactive PostgreSQL with R2DBC
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    runtimeOnly 'org.postgresql:r2dbc-postgresql:1.0.2.RELEASE'
+
+    // Liquibase
     implementation 'org.liquibase:liquibase-core'
-    implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
-    implementation 'org.springframework.grpc:spring-grpc-server-web-spring-boot-starter'
-    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+
+    // Validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Lombok
     compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // MapStruct
+//    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+//    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+
+    // Swagger/OpenAPI
+    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.13'
+
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.projectreactor:reactor-test'
+    testImplementation 'io.r2dbc:r2dbc-h2'
+
+
+//    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+//    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+//    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+//    implementation 'org.springframework.boot:spring-boot-starter-web'
+//    implementation 'io.grpc:grpc-services'
+//    implementation 'org.liquibase:liquibase-core'
+//    implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
+//    implementation 'org.springframework.grpc:spring-grpc-server-web-spring-boot-starter'
+//    implementation 'org.springframework.kafka:spring-kafka'
+//    implementation 'org.springframework.boot:spring-boot-starter-validation'
+//    compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     runtimeOnly 'org.postgresql:postgresql'
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    annotationProcessor 'org.projectlombok:lombok'
+//    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+//    annotationProcessor 'org.projectlombok:lombok'
 
     implementation "org.mapstruct:mapstruct:${mapstructVersion}"
     annotationProcessor "org.mapstruct:mapstruct-processor:1.6.3"
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.grpc:spring-grpc-test'
-    testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+//    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+//    testImplementation 'org.springframework.grpc:spring-grpc-test'
+//    testImplementation 'org.springframework.kafka:spring-kafka-test'
+//    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 dependencyManagement {
