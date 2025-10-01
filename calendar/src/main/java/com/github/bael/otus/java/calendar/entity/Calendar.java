@@ -1,6 +1,7 @@
 package com.github.bael.otus.java.calendar.entity;
 
 
+import com.github.bael.otus.java.calendar.domain.CalendarType;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -31,9 +32,6 @@ public class Calendar {
 
     @Column
     private String color;
-
-    @Column
-    private Boolean isPublic = false;
 
     @Column
     private Instant createdAt;

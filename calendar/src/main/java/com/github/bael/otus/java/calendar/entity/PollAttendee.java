@@ -4,6 +4,8 @@ package com.github.bael.otus.java.calendar.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.springframework.data.relational.core.mapping.Table;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.UUID;
@@ -20,5 +22,5 @@ public class PollAttendee {
     private UUID userId;
 
     @Column
-    private ZonedDateTime createdAt;
+    private Instant createdAt;
 }

@@ -13,8 +13,8 @@ public class CalendarEventResponse {
     private UUID calendarId;
     private String title;
     private String description;
-    private ZonedDateTime startTime;
-    private ZonedDateTime endTime;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private Boolean allDay;
     private String eventType;
     private String location;
@@ -22,5 +22,5 @@ public class CalendarEventResponse {
     private UUID parentEventId;
     private String status;
     private Instant createdAt;
-    private Instant updatedAt;
+
 }

@@ -5,9 +5,14 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
+/**
+ * голосование
+ */
 @Data
 @Table("poll_votes")
 @Entity
@@ -32,5 +37,5 @@ public class PollVote {
     private PollVoteStatus vote; // APPROVE, DENY
 
     @Column
-    private ZonedDateTime votedAt;
+    private Instant votedAt;
 }

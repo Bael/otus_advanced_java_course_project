@@ -5,9 +5,13 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
+/**
+ * время для выбора голосования
+ */
 @Data
 @Entity
 @Table(name = "poll_time_slots")
@@ -23,11 +27,11 @@ public class PollTimeSlot {
     private SchedulingPoll poll;
 
     @Column
-    private ZonedDateTime startTime;
+    private Instant startTime;
 
     @Column
-    private ZonedDateTime endTime;
+    private Instant endTime;
 
     @Column
-    private ZonedDateTime createdAt;
+    private Instant createdAt;
 }

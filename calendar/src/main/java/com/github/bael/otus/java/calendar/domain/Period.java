@@ -22,4 +22,9 @@ public class Period {
         return "Period{" +
                 startHour + ":" + finishHour + "}";
     }
+
+    public int getDuration() {
+        return finishHour - startHour + 1;
+    }
+
 }

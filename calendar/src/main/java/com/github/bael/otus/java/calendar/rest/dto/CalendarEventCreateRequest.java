@@ -18,11 +18,13 @@ public class CalendarEventCreateRequest {
 
     private String description;
 
+    private String timezone;
+
     @NotNull(message = "Start time is mandatory")
-    private ZonedDateTime startTime;
+    private LocalDateTime startTime;
 
     @NotNull(message = "End time is mandatory")
-    private ZonedDateTime endTime;
+    private LocalDateTime endTime;
 
     private Boolean allDay = false;
 

@@ -4,20 +4,29 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
 
 public class HourTimeline implements Timeline {
     private final LocalDate startDate;
     private final LocalDate finishDate;
-    boolean[] hours;
-
+    private final boolean[] hours;
+    private static final int HOURS_PER_DAY = 24;
 
     public HourTimeline(LocalDate startDate, LocalDate finishDate) {
+        if (startDate == null || finishDate == null) {
+            throw new IllegalArgumentException("Start and finish dates cannot be null");
+        }
+        if (startDate.isAfter(finishDate)) {
+            throw new IllegalArgumentException("Start date cannot be after finish date");
+        }
+
         this.startDate = startDate;
         this.finishDate = finishDate;
 
-        hours = new boolean[24 *  (int) (1 + finishDate.toEpochDay() - startDate.toEpochDay())];
+        long days = Duration.between(startDate.atStartOfDay(), finishDate.plusDays(1).atStartOfDay()).toDays();
+        this.hours = new boolean[(int) days * HOURS_PER_DAY];
     }
 
     @Override
@@ -25,29 +34,45 @@ public class HourTimeline implements Timeline {
         addPeriod(start, finish, true);
     }
 
-    public void addPeriod(LocalDateTime start, LocalDateTime finish, boolean isOpened) {
-        LocalDateTime periodStart = startDate.atStartOfDay();
-        if (periodStart.isBefore(start)) {
-            periodStart = start;
-        }
-        LocalDateTime periodFinish = finishDate.plusDays(1).atStartOfDay();
-        if (periodFinish.isAfter(finish)) {
-            periodFinish = finish;
+    private void addPeriod(LocalDateTime start, LocalDateTime finish, boolean isOpened) {
+        validateDateTime(start, finish);
+
+        LocalDateTime periodStart = start.isAfter(startDate.atStartOfDay()) ? start : startDate.atStartOfDay();
+        LocalDateTime periodFinish = finish.isBefore(finishDate.plusDays(1).atStartOfDay()) ?
+                finish : finishDate.plusDays(1).atStartOfDay();
+
+        if (!periodStart.isBefore(periodFinish)) {
+            return; // Нет пересечения с периодом timeline
         }
 
-        LocalDateTime next = periodStart;
-        do {
-            next = next.plusHours(1);
-            int hour = this.getHour(next);
-            hours[hour] = isOpened;
-        } while (next.isBefore(periodFinish));
+        LocalDateTime current = periodStart;
+        while (current.isBefore(periodFinish)) {
+            int hourIndex = getHourIndex(current);
+            if (hourIndex >= 0 && hourIndex < hours.length) {
+                hours[hourIndex] = isOpened;
+            }
+            current = current.plusHours(1);
+        }
     }
 
-    private static int HOURS_PER_DAY = 24;
-    public int getHour(LocalDateTime time) {
-        int day = (int) (time.toLocalDate().toEpochDay() - this.startDate.toEpochDay());
-        return day * HOURS_PER_DAY + time.getHour();
+    private void validateDateTime(LocalDateTime start, LocalDateTime finish) {
+        if (start == null || finish == null) {
+            throw new IllegalArgumentException("Start and finish cannot be null");
+        }
+        if (start.isAfter(finish)) {
+            throw new IllegalArgumentException("Start cannot be after finish");
+        }
+        if (start.toLocalDate().isAfter(finishDate) || finish.toLocalDate().isBefore(startDate)) {
+            throw new IllegalArgumentException("Period is outside timeline range");
+        }
+    }
 
+    public int getHourIndex(LocalDateTime time) {
+        if (time.toLocalDate().isBefore(startDate) || time.toLocalDate().isAfter(finishDate)) {
+            return -1; // Вне диапазона
+        }
+        long days = Duration.between(startDate.atStartOfDay(), time.toLocalDate().atStartOfDay()).toDays();
+        return (int) days * HOURS_PER_DAY + time.getHour();
     }
 
     @Override
@@ -56,48 +81,65 @@ public class HourTimeline implements Timeline {
     }
 
     @Override
-    public List<Period> getOpenPeriods() {
-        List<Period> openPeriods = new ArrayList<>();
-        LocalDate next = this.startDate;
-        LocalDate finish = this.finishDate;
-        do {
-            var opened = getOpenPeriodsOnDate(next);
-            System.out.println("on date: " + next + ", opened: " + opened);
-            openPeriods.addAll(opened);
-            next = next.plusDays(1);
-        }
-        while (next.isBefore(finish));
+    public Map<LocalDate, List<Period>> getOpenPeriods() {
+        Map<LocalDate, List<Period>> openPeriods = new HashMap<>();
 
-
-
-        return List.of();
-    }
-
-    private List<Period> getOpenPeriodsOnDate(LocalDate next) {
-        List<Period> openPeriods = new ArrayList<>();
-        LocalDateTime localDateTime = next.atStartOfDay();
-        int hour = this.getHour(localDateTime);
-        Period current = null;
-        for (int i = 0; i < HOURS_PER_DAY; i++) {
-            if (hours[hour + i]) {
-                if (current == null) {
-                    current = Period.of(i, i);
-                } else {
-                    current.shiftFinish();
-                }
-            } else {
-                // есть что записать
-                if (current != null) {
-                    openPeriods.add(current);
-                    current = null;
-                }
-            }
-        }
-        // Добавляем последний период, если он есть
-        if (current != null) {
-            openPeriods.add(current);
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(finishDate)) {
+            openPeriods.put(currentDate, getOpenPeriodsOnDate(currentDate));
+            currentDate = currentDate.plusDays(1);
         }
 
         return openPeriods;
+    }
+
+
+
+    private List<Period> getOpenPeriodsOnDate(LocalDate date) {
+        List<Period> openPeriods = new ArrayList<>();
+
+        int startHourIndex = getHourIndex(date.atStartOfDay());
+        if (startHourIndex < 0) return openPeriods;
+
+        Period currentPeriod = null;
+
+        for (int hour = 0; hour < HOURS_PER_DAY; hour++) {
+            int hourIndex = startHourIndex + hour;
+            if (hourIndex >= hours.length) break;
+
+            if (hours[hourIndex]) {
+                if (currentPeriod == null) {
+                    currentPeriod = Period.of(hour, hour);
+                } else {
+                    currentPeriod = Period.of(currentPeriod.getStartHour(), hour);
+                }
+            } else {
+                if (currentPeriod != null) {
+                    openPeriods.add(currentPeriod);
+                    currentPeriod = null;
+                }
+            }
+        }
+
+        // Добавляем последний период, если он есть
+        if (currentPeriod != null) {
+            openPeriods.add(currentPeriod);
+        }
+
+        return openPeriods;
+    }
+
+    // Вспомогательный метод для тестирования
+    public boolean isHourOpen(LocalDateTime dateTime) {
+        int hourIndex = getHourIndex(dateTime);
+        return hourIndex >= 0 && hourIndex < hours.length && hours[hourIndex];
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public LocalDate getFinishDate() {
+        return finishDate;
     }
 }

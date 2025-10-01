@@ -14,7 +14,5 @@ public class CalendarCreateRequest {
 
     private String color;
 
-    private Boolean isPublic = false;
-
     private UUID ownerId;
 }

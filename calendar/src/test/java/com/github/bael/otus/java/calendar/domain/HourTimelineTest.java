@@ -19,7 +19,7 @@ class HourTimelineTest {
         var period1Finish = period1Start.plusHours(3);
 
         var period2Start = start.atStartOfDay().plusDays(4).plusHours(11);
-        var period2Finish = period1Start.plusHours(2);
+        var period2Finish = period2Start.plusHours(2);
 
 
         hourTimeline.addOpenPeriod(period1Start, period1Finish);

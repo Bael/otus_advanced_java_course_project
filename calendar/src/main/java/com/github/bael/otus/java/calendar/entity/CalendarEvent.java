@@ -6,6 +6,7 @@ import lombok.Data;
 
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -29,13 +30,13 @@ public class CalendarEvent {
     private String description;
 
     @Column
-    private ZonedDateTime startTime;
+    private Instant startTime;
 
     @Column
-    private ZonedDateTime endTime;
+    private Instant endTime;
 
-    @Column(name = "all_day")
-    private Boolean allDay;
+//    @Column(name = "all_day")
+//    private Boolean allDay;
 
     @Enumerated(EnumType.STRING)
     private EventType eventType;
@@ -46,6 +47,9 @@ public class CalendarEvent {
     @Enumerated(EnumType.STRING)
     private CalendarEventStatus status;
 
+    /**
+     * повторяющееся событие?
+     */
     @Column
     private String scheduleCronExpression;
 
@@ -53,9 +57,5 @@ public class CalendarEvent {
     @ManyToOne(fetch = FetchType.LAZY)
     private CalendarEvent parentEvent;
 
-    @Column
-    private Instant createdAt;
 
-    @Column
-    private Instant updatedAt;
 }
