@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.UUID;
 
-@Repository
 public interface CalendarRepository extends CrudRepository<Calendar, UUID> {
 
     List<Calendar> findByOwnerId(UUID ownerId);

@@ -5,26 +5,22 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.springframework.data.domain.Range;
-import org.springframework.data.relational.core.sql.In;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.*;
 
 
-//@Builder
-//@NoArgsConstructor
+/**
+ * вычисляем общее время
+ */
 public class WeeklyHourlySchedule {
 
 
-    @Getter
-    Map<DayOfWeek, List<Range<LocalTime>>> intersections = new HashMap<>();
-
-    public Map<DayOfWeek, List<Range<LocalTime>>>  calculateIntersections(Map<DayOfWeek, List<List<Range<LocalTime>>>> weeklyOpenPeriods, int edge) {
+    public static Map<DayOfWeek, List<Range<LocalTime>>>  calculateIntersections(Map<DayOfWeek, List<List<Range<LocalTime>>>> weeklyOpenPeriods, int edge) {
         Map<DayOfWeek, List<Range<LocalTime>>> intersectionsWeekMap = new HashMap<>();
         Map<DayOfWeek, TreeMap<LocalTime, Integer>> startWeekMap = new HashMap<>();
         Map<DayOfWeek, TreeMap<LocalTime, Integer>> finishWeekMap = new HashMap<>();
-//        int edge = weeklyOpenPeriods.size();
 
         // add points
         for (var dayOfWeek : DayOfWeek.values()) {
@@ -55,29 +51,19 @@ public class WeeklyHourlySchedule {
             // extract
             int startCounter = 0;
             int finishCounter = 0;
-//            System.out.println("edge  " + edge);
             for (var dayStartEntry : dayStartMap.entrySet()) {
                 Integer startedPeriodsCountOnTime = dayStartEntry.getValue();
                 startCounter += startedPeriodsCountOnTime;
-//                System.out.println("start  " + startCounter);
 
                 var finishMap = dayFinishMap.headMap(dayStartEntry.getKey(), true);
                 for (var dayFinishEntry : finishMap.entrySet()) {
                     Integer finishedPeriodsCountOnTime = dayFinishEntry.getValue();
                     finishCounter += finishedPeriodsCountOnTime;
                 }
-//                System.out.println("finish " + finishCounter);
                 int diff =  startCounter - finishCounter;
-//                System.out.println("diff " + diff);
                 if (diff >= edge) {
-
-                    // add start range
-//                    System.out.println("dayStartEntry.getKey() " + dayStartEntry.getKey());
-//                    System.out.println("dayFinishMap " + dayFinishMap);
                     var nextFinish = dayFinishMap.ceilingEntry(dayStartEntry.getKey());
-
                     intersections.add(Range.closed(dayStartEntry.getKey(), nextFinish.getKey()));
-//                    System.out.println("added intersection");
                 }
             }
 

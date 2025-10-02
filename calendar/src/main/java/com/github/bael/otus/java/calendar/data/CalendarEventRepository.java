@@ -11,7 +11,6 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 
-@Repository
 public interface CalendarEventRepository extends CrudRepository<CalendarEvent, UUID> {
 
     List<CalendarEvent> findByCalendarId(UUID calendarId);
@@ -19,16 +18,20 @@ public interface CalendarEventRepository extends CrudRepository<CalendarEvent, U
     @Query(value = "SELECT * FROM calendar_events  WHERE calendar_id = :calendarId AND start_time between :start AND :end", nativeQuery = true)
     List<CalendarEvent> findByCalendarIdAndPeriod(
             @Param("calendarId") UUID calendarId,
-            @Param("start") ZonedDateTime start,
-            @Param("end") ZonedDateTime end
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
     );
 
     @Query(value = "SELECT ce.* FROM calendar_events ce " +
             "JOIN calendars c ON ce.calendar_id = c.id " +
-            "WHERE c.owner_id = :ownerId AND ce.start_time between :start AND :end", nativeQuery = true)
-    List<CalendarEvent> findByOwnerIdAndPeriod(
-            @Param("ownerId") UUID ownerId,
-            @Param("start") ZonedDateTime start,
-            @Param("end") ZonedDateTime end
-    );
+            "JOIN calendar_event_attendee attendee ON ce.id = attendee.calendar_event_id " +
+            "WHERE c.id = :calendar_id AND ce.start_time between :start AND :end "+
+            " and attendee.user_id in (:attendeeList)"
+            , nativeQuery = true)
+    List<CalendarEvent> findByCalendarAndPeriodAndAttendeeList(
+            @Param("calendar_id") UUID calendar_id,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("attendeeList") List<UUID> attendeeList
+            );
 }

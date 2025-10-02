@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class UserInfo {
     String firstName;
     String lastName;
+    String email;
 }

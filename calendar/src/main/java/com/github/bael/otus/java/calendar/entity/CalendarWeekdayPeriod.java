@@ -3,8 +3,7 @@ package com.github.bael.otus.java.calendar.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
+
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -17,8 +16,10 @@ import java.util.UUID;
  */
 @Data
 @Table(name = "calendar_weekday_periods")
+@Entity
 public class CalendarWeekdayPeriod {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column

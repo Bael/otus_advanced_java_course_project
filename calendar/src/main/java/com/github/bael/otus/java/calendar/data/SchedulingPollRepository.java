@@ -4,6 +4,5 @@ import com.github.bael.otus.java.calendar.entity.SchedulingPoll;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
-@Repository
 public interface SchedulingPollRepository extends CrudRepository<SchedulingPoll, Long> {
 }

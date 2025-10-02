@@ -43,9 +43,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.liquibase:liquibase-core'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+//    implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
     compileOnly 'org.projectlombok:lombok'
     implementation 'com.cronutils:cron-utils:9.2.1'
+
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.16.1' // Use the appropriate version
 
 
     implementation "org.mapstruct:mapstruct:${mapstructVersion}"

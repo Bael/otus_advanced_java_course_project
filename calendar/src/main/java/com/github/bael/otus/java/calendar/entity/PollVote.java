@@ -3,7 +3,6 @@ package com.github.bael.otus.java.calendar.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -14,11 +13,12 @@ import java.util.UUID;
  * голосование
  */
 @Data
-@Table("poll_votes")
+@Table(name = "poll_votes")
 @Entity
 public class PollVote {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @jakarta.persistence.Id
     private Long id;
 

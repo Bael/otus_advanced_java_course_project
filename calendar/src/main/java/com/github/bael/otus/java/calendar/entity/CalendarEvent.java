@@ -23,6 +23,9 @@ public class CalendarEvent {
     @JoinColumn(name = "calendar_id")
     private Calendar calendar;
 
+    @Transient
+    private UUID userId;
+
     @Column(length = 100)
     private String title;
 

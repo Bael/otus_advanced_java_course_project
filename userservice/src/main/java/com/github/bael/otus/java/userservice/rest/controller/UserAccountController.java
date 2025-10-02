@@ -20,11 +20,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @Tag(name = "User Account Management", description = "Reactive APIs for managing user accounts")
 @Slf4j
@@ -47,6 +48,16 @@ public class UserAccountController {
                 .map(userAccountMapper::toResponse)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+
+    @Operation(summary = "Get users by ID list")
+    @PostMapping("/")
+    public Mono<ResponseEntity<List<UserAccountResponse>>> getUsersByIds(@RequestBody Set<UUID> ids) {
+        return userAccountService.findByIds(ids)
+                .map(userAccountMapper::toResponse)
+                .collectList().map(ResponseEntity::ok);
+
     }
 
     @Operation(summary = "Create a new user")

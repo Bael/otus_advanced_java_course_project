@@ -11,6 +11,8 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -23,6 +25,10 @@ public class UserAccountService {
 
     public Flux<UserAccount> findAll() {
         return userAccountRepository.findAll();
+    }
+
+    public Flux<UserAccount> findByIds(Set<UUID> ids) {
+        return userAccountRepository.findAllById(ids);
     }
 
     public Mono<UserAccount> findById(UUID id) {

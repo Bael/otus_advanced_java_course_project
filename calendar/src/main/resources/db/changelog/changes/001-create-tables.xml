@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Таблица: calendars -->
+    <changeSet id="1" author="generated">
+        <createTable tableName="calendars">
+            <column name="id" type="UUID" defaultValue="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="owner_id" type="UUID"/>
+            <column name="name" type="VARCHAR(200)"/>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="color" type="VARCHAR(255)"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+    </changeSet>
+
+    <!-- Таблица: calendar_events -->
+    <changeSet id="2" author="generated">
+        <createTable tableName="calendar_events">
+            <column name="id" type="UUID" defaultValue="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="calendar_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(100)"/>
+            <column name="description" type="VARCHAR(1000)"/>
+            <column name="start_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="end_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="event_type" type="VARCHAR(50)"/>
+            <column name="location" type="VARCHAR(255)"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="schedule_cron_expression" type="VARCHAR(255)"/>
+            <column name="parent_event_id" type="UUID"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="calendar_events"
+                                 baseColumnNames="calendar_id"
+                                 constraintName="fk_calendar_events_calendar"
+                                 referencedTableName="calendars"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="calendar_events"
+                                 baseColumnNames="parent_event_id"
+                                 constraintName="fk_calendar_events_parent"
+                                 referencedTableName="calendar_events"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+    </changeSet>
+
+    <!-- Таблица: calendar_event_attendee -->
+    <changeSet id="3" author="generated">
+        <createTable tableName="calendar_event_attendee">
+            <column name="id" type="UUID" defaultValue="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="calendar_event_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="calendar_event_attendee"
+                                 baseColumnNames="calendar_event_id"
+                                 constraintName="fk_attendee_event"
+                                 referencedTableName="calendar_events"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- Таблица: calendar_weekday_periods -->
+    <changeSet id="4" author="generated">
+        <createTable tableName="calendar_weekday_periods">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID"/>
+            <column name="calendar_id" type="UUID"/>
+            <column name="week_day" type="VARCHAR(20)"/>
+            <column name="start" type="TIME"/>
+            <column name="finish" type="TIME"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="calendar_weekday_periods"
+                                 baseColumnNames="calendar_id"
+                                 constraintName="fk_weekday_periods_calendar"
+                                 referencedTableName="calendars"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- Таблица: scheduling_poll -->
+    <changeSet id="5" author="generated">
+        <createTable tableName="scheduling_poll">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="organizer_id" type="UUID"/>
+            <column name="title" type="VARCHAR(255)"/>
+            <column name="description" type="VARCHAR(1000)"/>
+            <column name="duration_minutes" type="INTEGER"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="deadline" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="start_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="finish_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="created_event_id" type="UUID"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="scheduling_poll"
+                                 baseColumnNames="created_event_id"
+                                 constraintName="fk_poll_created_event"
+                                 referencedTableName="calendar_events"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+    </changeSet>
+
+    <!-- Таблица: poll_attendees -->
+    <changeSet id="6" author="generated">
+        <createTable tableName="poll_attendees">
+            <column name="poll_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="poll_attendees"
+                                 baseColumnNames="poll_id"
+                                 constraintName="fk_poll_attendees_poll"
+                                 referencedTableName="scheduling_poll"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- Таблица: poll_time_slots -->
+    <changeSet id="7" author="generated">
+        <createTable tableName="poll_time_slots">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="poll_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="end_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="poll_time_slots"
+                                 baseColumnNames="poll_id"
+                                 constraintName="fk_time_slots_poll"
+                                 referencedTableName="scheduling_poll"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- Таблица: poll_votes -->
+    <changeSet id="8" author="generated">
+        <createTable tableName="poll_votes">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="poll_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_slot_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID"/>
+            <column name="vote" type="VARCHAR(50)"/>
+            <column name="voted_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="poll_votes"
+                                 baseColumnNames="poll_id"
+                                 constraintName="fk_poll_votes_poll"
+                                 referencedTableName="scheduling_poll"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="poll_votes"
+                                 baseColumnNames="time_slot_id"
+                                 constraintName="fk_poll_votes_time_slot"
+                                 referencedTableName="poll_time_slots"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- Таблица: add pk to poll_attendees -->
+    <changeSet id="10" author="generated">
+        <addColumn tableName="poll_attendees">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Таблица: add pk to poll_attendees -->
+    <changeSet id="11" author="generated">
+        <addColumn tableName="scheduling_poll">
+            <column name="calendar_id" type="uuid" >
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

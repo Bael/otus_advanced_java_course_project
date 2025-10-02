@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/calendars")
+@RequestMapping("/api/v1/calendars")
 @RequiredArgsConstructor
 @Tag(name = "Calendar Management", description = "APIs for managing calendars")
 public class CalendarController {

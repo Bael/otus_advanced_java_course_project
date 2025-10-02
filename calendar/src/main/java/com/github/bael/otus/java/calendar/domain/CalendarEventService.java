@@ -1,7 +1,9 @@
 package com.github.bael.otus.java.calendar.domain;
 
+import com.github.bael.otus.java.calendar.data.CalendarEventAttendeeRepository;
 import com.github.bael.otus.java.calendar.data.CalendarEventRepository;
 import com.github.bael.otus.java.calendar.entity.CalendarEvent;
+import com.github.bael.otus.java.calendar.entity.CalendarEventAttendee;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,20 +24,29 @@ public class CalendarEventService {
         return eventRepository.findByCalendarId(calendarId);
     }
 
-    public List<CalendarEvent> getEventsByCalendarIdAndPeriod(UUID calendarId, ZonedDateTime start, ZonedDateTime end) {
+    public List<CalendarEvent> getEventsByCalendarIdAndPeriod(UUID calendarId, LocalDateTime start, LocalDateTime end) {
         return eventRepository.findByCalendarIdAndPeriod(calendarId, start, end);
     }
 
-    public List<CalendarEvent> getEventsByOwnerIdAndPeriod(UUID ownerId, ZonedDateTime start, ZonedDateTime end) {
-        return eventRepository.findByOwnerIdAndPeriod(ownerId, start, end);
+    public List<CalendarEvent> findByCalendarAndPeriodAndAttendeeList(UUID calendarId, LocalDateTime start, LocalDateTime end, List<UUID> attendees) {
+        return eventRepository.findByCalendarAndPeriodAndAttendeeList(calendarId, start, end, attendees);
     }
 
     public Optional<CalendarEvent> getEventById(UUID id) {
         return eventRepository.findById(id);
     }
 
+    private final CalendarEventAttendeeRepository attendeeRepository;
+
+    @Transactional
     public CalendarEvent createEvent(CalendarEvent event) {
-        return eventRepository.save(event);
+        eventRepository.save(event);
+        CalendarEventAttendee attendee = new CalendarEventAttendee();
+        attendee.setCalendarEvent(event);
+        attendee.setUserId(event.getUserId());
+        attendeeRepository.save(attendee);
+
+        return event;
     }
 
     public CalendarEvent updateEvent(CalendarEvent event) {

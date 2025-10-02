@@ -14,7 +14,7 @@ public class SchedulingPoll {
 
     @jakarta.persistence.Id
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
@@ -40,6 +40,8 @@ public class SchedulingPoll {
 
     @Column
     private Instant startTime;
+
+    @Column
     private Instant finishTime;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -48,6 +50,10 @@ public class SchedulingPoll {
 
     @Column
     private Instant createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "calendar_id")
+    private Calendar calendar;
 
 
 
