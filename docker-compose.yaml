@@ -1,0 +1,98 @@
+services:
+  calendar-db:
+    image: postgres:15
+    container_name: calendar-db
+    environment:
+      POSTGRES_DB: calendar_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345678
+    ports:
+      - "5433:5432"
+    volumes:
+      - calendar_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d calendar_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  user-db:
+    image: postgres:15
+    container_name: user-db
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345678
+    ports:
+      - "5434:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d user_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============== USER SERVICE ===============
+  user-service:
+    build:
+      context: ./userservice
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "12101:12101"
+    environment:
+      POSTGRES_HOST_RDBC_URL: r2dbc:postgresql://user-db:5432/users_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 12345678
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SERVER_PORT: 12101
+    depends_on:
+      user-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============== CALENDAR SERVICE ===============
+  calendar-service:
+    build:
+      context: ./calendar
+      dockerfile: Dockerfile
+    container_name: calendar-service
+    ports:
+      - "12102:12102"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://calendar-db:5432/calendar_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 12345678
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SERVER_PORT: 12102
+      # URL других сервисов
+      USER_SERVICE_URL: http://user-service:12101
+      NOTIFICATION_SERVICE_URL: http://notification-service:12103
+    depends_on:
+      calendar-db:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    restart: unless-stopped
+
+  # =============== NOTIFICATION SERVICE ===============
+  notification-service:
+    build:
+      context: ./notification
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "12103:12103"
+    environment:
+      SERVER_PORT: 12103
+      # URL других сервисов (например, для генерации ссылок)
+      CALENDAR_SERVICE_URL: http://calendar-service:12102
+      USER_SERVICE_URL: http://user-service:12101
+    depends_on:
+      - user-service
+    restart: unless-stopped
+
+volumes:
+  calendar_db_data:
+  user_db_data:

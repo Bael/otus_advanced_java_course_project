@@ -3,10 +3,13 @@ package com.github.bael.otus.java.calendar.domain;
 import com.github.bael.otus.java.calendar.data.*;
 import com.github.bael.otus.java.calendar.entity.*;
 import com.github.bael.otus.java.calendar.entity.Calendar;
+import com.github.bael.otus.java.calendar.interop.notification.client.NotificationServiceClient;
+import com.github.bael.otus.java.calendar.interop.notification.dto.EventNotificationRequest;
+import com.github.bael.otus.java.calendar.interop.notification.dto.RecipientDto;
 import com.github.bael.otus.java.calendar.interop.user.UserInfo;
 import com.github.bael.otus.java.calendar.interop.user.UserServiceClient;
-import javafx.scene.canvas.GraphicsContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.data.domain.Range;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MeetingService {
 
     private final AvailabilityService availabilityService;
@@ -36,7 +40,7 @@ public class MeetingService {
         schedulingPoll.setTitle(title);
         schedulingPoll.setCalendar(calendar);
         // 30 minutes
-        schedulingPoll.setDeadline(Instant.now().plusSeconds(30 * 60));
+        schedulingPoll.setDeadline(Instant.now().plusSeconds(3 * 60));
         schedulingPoll.setCreatedAt(Instant.now());
         schedulingPoll.setStatus(SchedulingPollStatus.OPEN);
         schedulingPoll.setDurationMinutes(hours * 60);
@@ -80,48 +84,57 @@ public class MeetingService {
 
     private final UserServiceClient userServiceClient;
 
-    private final EmailService emailService;
+//    private final EmailService emailService;
     private final PollVoteRepository pollVoteRepository;
+    private final NotificationServiceClient notificationServiceClient;
+
     @Transactional
     protected void generateVoteLinks(List<PollTimeSlot> pollTimeSlots, List<UUID> attendees, SchedulingPoll schedulingPoll) {
         Map<UUID, UserInfo> usersByIds = userServiceClient.getUsersByIds(new HashSet<>(attendees));
 
-
         for (var entry : usersByIds.entrySet()) {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("Выберите слот для голосования <br> ").append("\n");
+//
+//            StringBuilder stringBuilder = new StringBuilder();
+//            stringBuilder.append("Выберите слот для голосования <br> ").append("\n");
 
+            List<PollVote> userVotes = new ArrayList<>();
             for (var slot : pollTimeSlots) {
                 PollVote vote = new PollVote();
                 vote.setPoll(schedulingPoll);
                 vote.setUserId(entry.getKey());
                 vote.setTimeSlot(slot);
                 // status is null
-                pollVoteRepository.save(vote);
-                String link = "http://localhost:12102/api/v1/calendar/events/vote/" + vote.getId();
-                stringBuilder.append("<UNK> <UNK> <UNK> <UNK> <br> <a href="+ link +">" + slot.getStartTime() + " " + slot.getEndTime() +  "<a/>").append("\n");
+                userVotes.add(vote);
+//
+//
+//                String link = "http://localhost:12102/api/v1/calendar/events/vote/" + vote.getId();
+//                stringBuilder.append("<UNK> <UNK> <UNK> <UNK> <br> <a href="+ link +">" + slot.getStartTime() + " " + slot.getEndTime() +  "<a/>").append("\n");
             }
+            pollVoteRepository.saveAll(userVotes);
+            notificationServiceClient.sendVoteNotification(entry.getValue(), userVotes, schedulingPoll);
 
-            emailService.sendSimpleMessage(entry.getValue().getEmail(), "Внимание! Назначена встреча!", stringBuilder.toString());
+//            emailService.sendSimpleMessage(entry.getValue().getEmail(), "Внимание! Назначена встреча!", stringBuilder.toString());
 
 
         }
 
     }
 
+
+
     @Transactional
-    public void voteForSlot(UUID userId, Long slotId, PollVoteStatus pollVoteStatus) {
-        // todo create slot
-        // todo check voting is over
-
-
-
-    }
-
     public String markSuccessVote(Long voteId) {
         var vote = pollVoteRepository.findById(voteId).orElse(null);
         if (vote == null) {
             return "<UNK> <UNK> Vote does not exits <UNK>";
+        }
+
+        if (vote.getPoll().getDeadline().isBefore(Instant.now())) {
+            return "Голосование просрочено";
+        }
+
+        if (vote.getVote() != null) {
+            return "Вы уже голосовали!";
         }
         vote.setVote(PollVoteStatus.APPROVED);
         pollVoteRepository.save(vote);
@@ -132,8 +145,20 @@ public class MeetingService {
     private void checkSchedulingPollStatus(SchedulingPoll poll) {
         var votes = pollVoteRepository.findByPollId(poll.getId());
 
-        var allVoted = votes.stream()
-                .allMatch(pollVote -> pollVote.getVote() == PollVoteStatus.APPROVED);
+        var users = pollAttendeeRepository.findByPoll_Id(poll.getId())
+                .stream()
+                .map(PollAttendee::getUserId).toList();
+
+        var votedUsersSet = votes.stream()
+                .filter(pollVote -> pollVote.getVote() == PollVoteStatus.APPROVED).map(PollVote::getUserId)
+                .collect(Collectors.toSet());
+        var usersToVote = new HashSet<>(users);
+        usersToVote.removeAll(votedUsersSet);
+        boolean allVoted = usersToVote.isEmpty();
+//
+//        var allVoted = votes.stream()
+//                .allMatch(pollVote -> pollVote.getVote() == PollVoteStatus.APPROVED);
+
 
         var map = votes.stream().collect(Collectors.groupingBy(PollVote::getTimeSlot, Collectors.counting()));
         long max = -1;
@@ -157,18 +182,33 @@ public class MeetingService {
             event.setUserId(poll.getOrganizerId());
             calendarEventRepository.save(event);
             poll.setCreatedEventId(event);
+            schedulingPollRepository.save(poll);
 
-            var users = pollAttendeeRepository.findByPoll_Id(poll.getId())
-                    .stream()
-                    .map(PollAttendee::getUserId).toList();
+//            var users = pollAttendeeRepository.findByPoll_Id(poll.getId())
+//                    .stream()
+//                    .map(PollAttendee::getUserId).toList();
+//
+            var usersMap = userServiceClient.getUsersByIds(new HashSet<>(users));
+            log.info("Нужно оповестить пользователей {} об успешном согласовании встречи {}", usersMap.entrySet(),
+                    poll.getTitle());
+
             for (var userId : users) {
                 CalendarEventAttendee attendee = new CalendarEventAttendee();
                 attendee.setCalendarEvent(event);
                 attendee.setUserId(userId);
                 calendarEventAttendeeRepository.save(attendee);
+
+                var userInfo = usersMap.get(userId);
+                RecipientDto recipient = new RecipientDto(userInfo.getUserId(), userInfo.getEmail(), userInfo.fullname());
+                EventNotificationRequest request = new EventNotificationRequest(recipient, "Успешно согласована встреча!"
+                        , Instant.now(), "Успешно согласована встреча " + poll.getTitle()
+                        + " на время   " + maxSlot.getStartTime() +" " + maxSlot.getEndTime());
+                log.info("Оповещаем пользователя {} ", userInfo.getEmail());
+                notificationServiceClient.sendEventNotification(request);
             }
 
-            event.setUserId(poll.getOrganizerId());
+
+
         }
 
 

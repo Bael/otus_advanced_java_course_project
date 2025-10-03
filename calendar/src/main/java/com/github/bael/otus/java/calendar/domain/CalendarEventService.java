@@ -4,6 +4,7 @@ import com.github.bael.otus.java.calendar.data.CalendarEventAttendeeRepository;
 import com.github.bael.otus.java.calendar.data.CalendarEventRepository;
 import com.github.bael.otus.java.calendar.entity.CalendarEvent;
 import com.github.bael.otus.java.calendar.entity.CalendarEventAttendee;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,9 +29,17 @@ public class CalendarEventService {
         return eventRepository.findByCalendarIdAndPeriod(calendarId, start, end);
     }
 
+
+    @RateLimiter(name = "calendarService", fallbackMethod = "rateLimitFallback")
     public List<CalendarEvent> findByCalendarAndPeriodAndAttendeeList(UUID calendarId, LocalDateTime start, LocalDateTime end, List<UUID> attendees) {
         return eventRepository.findByCalendarAndPeriodAndAttendeeList(calendarId, start, end, attendees);
     }
+
+    public List<CalendarEvent> rateLimitFallback(UUID calendarId, LocalDateTime start, LocalDateTime end, List<UUID> attendees) {
+        throw new RuntimeException("Rate limit fallback");
+    }
+
+
 
     public Optional<CalendarEvent> getEventById(UUID id) {
         return eventRepository.findById(id);

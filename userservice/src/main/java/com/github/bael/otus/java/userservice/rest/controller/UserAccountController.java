@@ -7,6 +7,8 @@ import com.github.bael.otus.java.userservice.rest.dto.UserAccountResponse;
 import com.github.bael.otus.java.userservice.rest.dto.UserAccountUpdateRequest;
 
 import com.github.bael.otus.java.userservice.rest.mapper.UserAccountMapper;
+import io.github.resilience4j.ratelimiter.RateLimiter;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -51,9 +53,25 @@ public class UserAccountController {
     }
 
 
+    private final RateLimiterRegistry rateLimiterRegistry;
+
+
+    //        RateLimiter rateLimiter = rateLimiterRegistry.rateLimiter("userService");
+//
+//        return Mono.fromCallable(() -> rateLimiter.acquirePermission())
+//                .flatMap(permission -> {
+//                    if (permission) {
+//                        return userAccountService.findByIds(ids).collectList()
+//                                .map(ResponseEntity::ok);
+//                    } else {
+//                        return Mono.just(ResponseEntity.status(429).build());
+//                    }
+//                });
+
     @Operation(summary = "Get users by ID list")
     @PostMapping("/")
     public Mono<ResponseEntity<List<UserAccountResponse>>> getUsersByIds(@RequestBody Set<UUID> ids) {
+
         return userAccountService.findByIds(ids)
                 .map(userAccountMapper::toResponse)
                 .collectList().map(ResponseEntity::ok);

@@ -1,0 +1,31 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Система
+System_Boundary(c1, "Calendar Platform") {
+    Container(calendar, "Calendar Service", "Spring Boot, Java", "Управляет календарями, событиями, голосованиями и расписанием")
+    Container(user, "User Service", "Spring Boot, Java", "Хранит и предоставляет данные пользователей: ФИО, email, часовой пояс")
+    Container(notif, "Notification Service", "Spring Boot, Java", "Принимает запросы на отправку уведомлений")
+}
+
+' Взаимодействия через REST
+Rel(calendar, user, "Запрашивает данные пользователей", "HTTPS / REST")
+Rel(calendar, notif, "Отправляет команды на уведомление", "HTTPS / REST")
+
+' Примечания по API
+note right of calendar
+  Вызывает:
+  - POST /api/v1/users/
+end note
+
+note right of notif
+  Принимает:
+  - POST /api/v1/notifications/voting
+  - POST /api/v1/notifications/event
+end note
+'
+'' Стили
+'UpdateRelStyle(calendar, user, "dashed", "")
+'UpdateRelStyle(calendar, notif, "dashed", "")
+
+@enduml

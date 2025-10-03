@@ -42,9 +42,8 @@ public class CalendarEventController {
 
 
     @GetMapping("/vote/{voteId}")
-    public void vote(@PathVariable Long voteId) {
-        meetingService.markSuccessVote(voteId);
-
+    public String vote(@PathVariable Long voteId) {
+        return  meetingService.markSuccessVote(voteId);
     }
 
     @PostMapping("/schedule")

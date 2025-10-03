@@ -61,6 +61,7 @@ public class UserServiceClient {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
+                .userId(user.getId())
                 .build();
     }
 }
