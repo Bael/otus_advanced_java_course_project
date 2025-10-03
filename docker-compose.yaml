@@ -1,7 +1,7 @@
 services:
   calendar-db:
     image: postgres:15
-    container_name: calendar-db
+#    container_name: calendar-db
     environment:
       POSTGRES_DB: calendar_db
       POSTGRES_USER: postgres
@@ -17,7 +17,7 @@ services:
       retries: 5
   user-db:
     image: postgres:15
-    container_name: user-db
+#    container_name: user-db
     environment:
       POSTGRES_DB: user_db
       POSTGRES_USER: postgres
@@ -41,8 +41,8 @@ services:
     ports:
       - "12101:12101"
     environment:
-      POSTGRES_HOST_RDBC_URL: r2dbc:postgresql://user-db:5432/users_db
-      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user_db
+      POSTGRES_HOST_RDBC_URL: r2dbc:postgresql://user-db:5432/user_db
+      SPRING_LIQUIBASE_URL: jdbc:postgresql://user-db:5432/user_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 12345678
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
