@@ -89,10 +89,15 @@ services:
       # URL других сервисов (например, для генерации ссылок)
       CALENDAR_SERVICE_URL: http://calendar-service:12102
       USER_SERVICE_URL: http://user-service:12101
+      MAIL_SERVICE_HOST: mail-service
     depends_on:
       - user-service
     restart: unless-stopped
-
+  mail-service:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 volumes:
   calendar_db_data:
   user_db_data:
